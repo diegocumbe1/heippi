@@ -1,8 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
-
-// import { profile } from 'src/profiles/entities/profile.entity';
-// import { Roles } from './../../roles/entities/roles.entity';
+import { Document, Types } from 'mongoose';
 
 export enum Role {
   HOSPITAL = 'Hospital',
@@ -48,6 +45,9 @@ export class Users extends Document {
 
   @Prop({ default: false })
   authenticated: boolean;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  hospital: Types.ObjectId | Users;
 
   @Prop({ type: String, default: 'null' })
   resetPasswordToken: string;

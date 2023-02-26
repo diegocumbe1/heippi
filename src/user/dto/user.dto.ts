@@ -1,4 +1,3 @@
-// import { IsString, IsNotEmpty } from 'class-validator'
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, Length } from 'class-validator';
 import { Role } from '../entities/User.entity';
@@ -34,6 +33,8 @@ export class CreateUserDto {
   birthday?: string;
 
   services?: Array<string>;
+
+  speciality?: string;
 
   verificationCode?: string;
 
@@ -116,12 +117,16 @@ export class RegisterMedicoDto {
   birthday: string;
 
   verificationCode?: string;
+
+  @IsNotEmpty()
+  @ApiProperty()
+  hospital: number;
 }
 
 export class RequestResetPasswordDto {
   @IsNotEmpty()
-  @IsEmail()
-  email: string;
+  @ApiProperty()
+  dniNumber: number;
 }
 
 export class VerifyUserDto {
@@ -164,6 +169,3 @@ export class PayloadToken {
 }
 
 export class UpdateUserDto extends PartialType(CreateUserDto) {}
-// export class UpdateLoginDto extends PartialType(LoginDto) {}
-// export class UpdateUserDto extends PartialType(CreateUserDto) {}
-// export class UpdateUserDto extends PartialType(CreateUserDto) {}

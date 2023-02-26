@@ -23,7 +23,6 @@ export class RolesGuard implements CanActivate {
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
     const roles = this.reflector.get<Role[]>(ROLES_KEY, context.getHandler());
-    console.log('roles --', roles);
     if (!roles) {
       return true;
     }
@@ -34,7 +33,6 @@ export class RolesGuard implements CanActivate {
       const userRole = this.userService.decodeToken(token);
 
       const isAuth = roles.some((role) => role === userRole);
-      console.log('isAuth', isAuth);
       if (!isAuth) {
         throw new UnauthorizedException('💥Role invalid!!💥');
       }

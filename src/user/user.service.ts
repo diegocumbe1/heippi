@@ -29,7 +29,6 @@ import {
 export class UserService {
   constructor(
     @InjectModel('User') private readonly usersModel: Model<Users>,
-    // private roleService: RolesService,
     private jwtService: JwtService,
   ) {}
 
@@ -69,9 +68,18 @@ export class UserService {
     const userExist = await this.usersModel.findOne({
       dniNumber: data.dniNumber,
     });
+    const hospital = await this.usersModel.findOne({
+      dniNumber: data.hospital,
+    });
     if (userExist) {
-      throw new BadRequestException(`${data.email} user Exist`);
+      throw new BadRequestException(`${data.dniNumber} user Exist`);
     }
+    if (!hospital || hospital?.role != Role.HOSPITAL) {
+      throw new NotFoundException(
+        `user whith dniNumber -> ${data.hospital} not found`,
+      );
+    }
+    data.hospital = hospital.id;
     data.role = Role.MEDICO;
     data.password = randomBytes(4).toString('hex');
     data.mustChangePassword = true;
@@ -82,7 +90,7 @@ export class UserService {
     const hashPassword = await bcrypt.hash(newUser.password, 10);
     newUser.password = hashPassword;
     const model = await newUser.save();
-    const { password, verificationCode, ...rta } = model.toJSON();
+    const { password, verificationCode, services, ...rta } = model.toJSON();
     const verify = {
       email: model.email,
       code: code,
@@ -132,9 +140,7 @@ export class UserService {
   }
 
   async RegisterUser(dniNumber: string, user: UpdateUserDto) {
-    console.log('dniNumber', dniNumber);
     const usuario = await this.findByDniNumber(parseInt(dniNumber));
-    console.log('usuario', usuario);
     if (!usuario) {
       throw new NotFoundException(
         `user whith dniNumber -> ${dniNumber} not found`,
@@ -148,7 +154,6 @@ export class UserService {
         services: user.services,
       };
       changes = hospital;
-      console.log('changesss hospital', changes);
     } else if (usuario.role == Role.PACIENTE) {
       const paciente: RegisterPacienteDto = {
         name: user.name,
@@ -156,13 +161,12 @@ export class UserService {
         birthday: user.birthday,
       };
       changes = paciente;
-      console.log('changesss peac', changes);
     }
-    console.log('changes', changes);
     const newUser = await this.usersModel
       .findByIdAndUpdate(usuario.id, { $set: changes }, { new: true })
       .exec();
-    return newUser;
+    const { password, verificationCode, services, ...rta } = newUser.toJSON();
+    return rta;
     // {
     //   statusCode: 201,
     //   message: 'user register succesfully',
@@ -216,7 +220,7 @@ export class UserService {
     return 'mensaje enviado';
   }
   async sendEmailPass(data: VerifyUserDto) {
-    const usuario = await this.findByEmail(data.email);
+    const usuario = await this.findByDniNumber(data.dniNumber);
     if (!usuario) {
       return `email: ${data.email} no encontrado`;
     }
@@ -224,8 +228,8 @@ export class UserService {
       host: 'smtp.gmail.com',
       port: 465,
       auth: {
-        user: process.env.USER_GMAIL,
-        pass: process.env.PASSWORD_GMAIL,
+        user: process.env.EMAIL_NODEMAILER,
+        pass: process.env.PASS_NODEMAILER,
       },
     };
 
@@ -257,8 +261,8 @@ export class UserService {
       host: 'smtp.gmail.com',
       port: 465,
       auth: {
-        user: process.env.USER_GMAIL,
-        pass: process.env.PASSWORD_GMAIL,
+        user: process.env.EMAIL_NODEMAILER,
+        pass: process.env.PASS_NODEMAILER,
       },
     };
 
@@ -329,7 +333,7 @@ export class UserService {
   }
 
   async requestResetPassword(requestReset: RequestResetPasswordDto) {
-    const user = await this.findByEmail(requestReset.email);
+    const user = await this.findByDniNumber(requestReset.dniNumber);
     const { randomBytes } = await import('crypto');
 
     const code = randomBytes(3).toString('hex');
